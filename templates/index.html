@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+{% if current_user.is_authenticated %}
+<h1 class="mb-4">Mis Notas</h1>
+
+<!-- Barra de búsqueda -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form method="get" action="/" class="d-flex">
+            <input type="text" name="q" class="form-control me-2" placeholder="Buscar notas..." value="{{ request.args.get('q', '') }}">
+            <button class="btn btn-primary" type="submit">Buscar</button>
+        </form>
+    </div>
+    <div class="col-md-3">
+        <form method="get" action="/">
+            <label>Ordenar por:</label>
+            <select name="sort" class="form-select" onchange="this.form.submit()">
+                <option value="date" {% if sort_by == 'date' %}selected{% endif %}>Fecha</option>
+                <option value="title" {% if sort_by == 'title' %}selected{% endif %}>Título</option>
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if notes %}
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for note in notes %}
+    <div class="col">
+        <div class="card shadow-sm rounded" style="background-color: '{{ note_colors[note.id] }}';">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">{{ note.title }}</h5>
+                <p class="card-text"><small>Creada: {{ note.created_at.strftime('%d/%m/%Y %H:%M') }}</small></p>
+
+                {% if note.tags %}
+                <p>
+                    {% for tag in note.tags.split(',') %}
+                        <span class="badge bg-secondary">{{ tag.strip() }}</span>
+                    {% endfor %}
+                </p>
+                {% endif %}
+
+                <div class="mt-auto d-flex justify-content-between">
+                    <button class="btn btn-sm btn-info" onclick="openNoteWindow('{{ note.title|escape }}', '{{ note.content|escape }}')">
+                        <i class="fas fa-eye"></i> Open
+                    </button>
+                    <a href="{{ url_for('edit_note', id=note.id) }}" class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <form action="{{ url_for('delete_note', id=note.id) }}" method="post" class="d-inline">
+                        <button class="btn btn-sm btn-danger" type="submit">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p>No hay notas todavía. <a href="{{ url_for('add_note') }}">Agrega una</a>.</p>
+{% endif %}
+
+<script>
+function openNoteWindow(title, content) {
+    const width = 250;
+    const height = 250;
+    const left = window.screenX + 50;
+    const top = window.screenY + 50;
+    const colors = ['#FFEB3B', '#FFCDD2', '#BBDEFB'];
+    const bgColor = colors[Math.floor(Math.random() * colors.length)];
+
+    const noteWindow = window.open("", "_blank", 
+        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+    noteWindow.document.write(`
+        <html>
+        <head>
+            <title>${title}</title>
+            <style>
+                body {
+                    font-family: 'Poppins', sans-serif;
+                    background-color: ${bgColor};
+                    padding: 20px;
+                    margin:0;
+                    overflow-y: auto;
+                }
+                h2 { margin:0 0 10px 0; font-size:20px; }
+                p { font-size:16px; white-space: pre-line; }
+            </style>
+        </head>
+        <body>
+            <h2>${title}</h2>
+            <p>${content}</p>
+        </body>
+        </html>
+    `);
+    noteWindow.document.close();
+}
+
+</script>
+
+{% else %}
+<p>Por favor <a href="{{ url_for('login') }}">inicia sesión</a> o <a href="{{ url_for('register') }}">regístrate</a> para ver tus notas.</p>
+{% endif %}
+{% endblock %}
